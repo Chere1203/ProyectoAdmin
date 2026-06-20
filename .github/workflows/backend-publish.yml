@@ -22,15 +22,26 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Login to GHCR
+        # Try to use a personal access token if provided; fall back to GITHUB_TOKEN.
+        # Pushing images requires package write permissions which may not be granted
+        # to the default GITHUB_TOKEN in some repos/orgs. To avoid failing the
+        # workflow when no PAT is configured, we perform the actual push only
+        # when `GHCR_PAT` is present (see build-and-push step below).
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GHCR_PAT != '' && secrets.GHCR_PAT || secrets.GITHUB_TOKEN }}
 
       - name: Build and push
+        if: secrets.GHCR_PAT != ''
         uses: docker/build-push-action@v4
         with:
           context: ./backend
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/proyectoadmin-backend:latest
+
+      - name: Skip push (no GHCR_PAT)
+        if: secrets.GHCR_PAT == ''
+        run: |
+          echo "GHCR_PAT not configured — skipping image push to ghcr.io"
