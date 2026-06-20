@@ -4,8 +4,8 @@ import { figuritaService } from '../services/api';
 
 const ESTADO_CONFIG = {
   obtenida: { label: 'Tengo', dot: 'bg-green-400', border: 'border-green-400', glow: 'shadow-green-300' },
-  repetida:  { label: 'Repetida', dot: 'bg-yellow-400', border: 'border-yellow-400', glow: 'shadow-yellow-200' },
-  no_tengo:  { label: 'Me falta', dot: 'bg-gray-400', border: 'border-transparent', glow: '' },
+  repetida: { label: 'Repetida', dot: 'bg-yellow-400', border: 'border-yellow-400', glow: 'shadow-yellow-200' },
+  no_tengo: { label: 'Me falta', dot: 'bg-gray-400', border: 'border-transparent', glow: '' },
 };
 
 // Agrupar figuritas por país/sección (de a 12 por página doble)
@@ -98,6 +98,7 @@ export default function AlbumPage() {
   const [paginaActual, setPaginaActual] = useState(0);
 
   useEffect(() => {
+    // mover carga de datos a función para poder invocarla desde eventos externos
     const cargarDatos = async () => {
       try {
         const [catRes, albumRes] = await Promise.all([
@@ -114,7 +115,15 @@ export default function AlbumPage() {
         setLoading(false);
       }
     };
+
     cargarDatos();
+
+    const onAlbumUpdated = () => {
+      setLoading(true);
+      cargarDatos();
+    };
+    window.addEventListener('albumUpdated', onAlbumUpdated);
+    return () => window.removeEventListener('albumUpdated', onAlbumUpdated);
   }, []);
 
   const cambiarEstado = async (figuritaId, nuevoEstado) => {
@@ -145,8 +154,8 @@ export default function AlbumPage() {
   const pagDer = paginaFigs.slice(6, 12);
 
   // Stats
-  const obtenidas = Object.values(miAlbum).filter(e => e === 'obtenida').length;
   const repetidas = Object.values(miAlbum).filter(e => e === 'repetida').length;
+  const obtenidas = Object.values(miAlbum).filter(e => e === 'obtenida' || e === 'repetida').length;
   const total = figuritas.length;
   const porcentaje = total > 0 ? Math.round((obtenidas / total) * 100) : 0;
 
@@ -177,6 +186,45 @@ export default function AlbumPage() {
           <p className="text-sm font-semibold text-primary">{porcentaje}% completado</p>
           <p className="text-xs text-gray-500">{obtenidas} de {total} figuritas</p>
         </div>
+      </div>
+
+      <div className="flex flex-wrap gap-3 mb-6">
+        <Link
+          to="/intercambio"
+          className="
+      flex items-center gap-2
+      bg-gradient-to-r
+      from-purple-600
+      to-pink-600
+      text-white
+      px-6
+      py-3
+      rounded-2xl
+      font-semibold
+      shadow-lg
+      hover:scale-105
+      hover:shadow-xl
+      transition-all
+    "
+        >
+          🔄 Zona de Intercambio
+        </Link>
+
+        <button
+          className="
+      flex items-center gap-2
+      bg-white
+      border
+      border-gray-300
+      px-6
+      py-3
+      rounded-2xl
+      font-semibold
+      text-gray-700
+    "
+        >
+          🎯 Mis Repetidas: {repetidas}
+        </button>
       </div>
 
       {/* Barra de progreso */}
@@ -250,7 +298,7 @@ export default function AlbumPage() {
                 {Array.from({ length: 6 }).map((_, i) =>
                   pagIzq[i]
                     ? <FigurCard key={pagIzq[i].id} figurita={pagIzq[i]}
-                        estado={miAlbum[pagIzq[i].id] || 'no_tengo'} onCambiar={cambiarEstado} />
+                      estado={miAlbum[pagIzq[i].id] || 'no_tengo'} onCambiar={cambiarEstado} />
                     : <EmptyCard key={`empty-l-${i}`} />
                 )}
               </div>
@@ -273,7 +321,7 @@ export default function AlbumPage() {
                 {Array.from({ length: 6 }).map((_, i) =>
                   pagDer[i]
                     ? <FigurCard key={pagDer[i].id} figurita={pagDer[i]}
-                        estado={miAlbum[pagDer[i].id] || 'no_tengo'} onCambiar={cambiarEstado} />
+                      estado={miAlbum[pagDer[i].id] || 'no_tengo'} onCambiar={cambiarEstado} />
                     : <EmptyCard key={`empty-r-${i}`} />
                 )}
               </div>
