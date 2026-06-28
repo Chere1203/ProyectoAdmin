@@ -115,12 +115,20 @@ router.post('/:id/accion', async (req, res) => {
     if (updErr) throw updErr;
 
     // Si se acepta, marcar en album_usuario que receptor obtuvo la figurita solicitada
+    // y actualizar también el estado de la figurita ofrecida del solicitante.
     if (accion === 'aceptar') {
       const receptor_id = intercambio.receptor_id;
-      const figurita_id = intercambio.figurita_solicitada_id;
-      await supabase
-        .from('album_usuario')
-        .upsert({ usuario_id: receptor_id, figurita_id, estado: 'obtenida' }, { onConflict: 'usuario_id,figurita_id' });
+      const solicitante_id = intercambio.solicitante_id;
+      const figuritaSolicitada_id = intercambio.figurita_solicitada_id;
+      const figuritaOfrecida_id = intercambio.figurita_ofrecida_id;
+
+      await supabase.from('album_usuario').upsert(
+        [
+          { usuario_id: receptor_id, figurita_id: figuritaSolicitada_id, estado: 'obtenida' },
+          { usuario_id: solicitante_id, figurita_id: figuritaOfrecida_id, estado: 'obtenida' },
+        ],
+        { onConflict: 'usuario_id,figurita_id' }
+      );
     }
 
     res.json({ message: 'Acción ejecutada', intercambio: data });
